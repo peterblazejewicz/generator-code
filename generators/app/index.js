@@ -16,97 +16,111 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
     this.templatedata = {};
   },
 
-  initializing: function () {
-    // happens after yeoman logo
-  },
-
-  askFor: function () {
+  genType: function () {
     var done = this.async();
 
     var prompts = [{
       type: 'list',
-      name: 'type',
-      message: 'What type of application do you want to create?',
+      name: 'genType',
+      message: 'What would you like to do?',
       choices: [
         {
-          name: 'Node/Express application (' + chalk.bold('JavaScript') + ')',
-          value: 'expressJS'
-        },
-        {
-          name: 'Node/Express application (' + chalk.bold('TypeScript') + ')',
-          value: 'expressTS'
+          name: 'Get started with a sample application',
+          value: 'sample'
         }
-        // ,
-        // {
-        //   name: 'ASP.NET ' + chalk.bold('5') + ' Application',
-        //   value: 'aspnet'
-        // }
       ]
     }];
 
     this.prompt(prompts, function (props) {
-      this.type = props.type;
+      this.genType = props.genType;
       done();
     }.bind(this));
+
   },
 
-  askForName: function () {
+  sampleType: function () {
+    var done = this.async();
+
+    if (this.genType === 'sample') {
+
+      var prompts = [{
+        name: 'sampleType',
+        message: 'What type of application would you like?',
+        default: 'express',
+        type: 'list',
+        choices: ['express']
+      }];
+
+      this.prompt(prompts, function (props) {
+        this.sampleType = props.sampleType;
+        done();
+      }.bind(this));
+    } else {
+      done();
+    }
+
+  },
+
+  configSample: function () {
     var done = this.async();
     var app = 'expressApp';
 
-    var prompts = [{
-      name: 'applicationName',
-      message: 'What\'s the name of your application?',
-      default: app
-    },
-      {
-        name: 'gitInit',
-        type: 'confirm',
-        message: 'Initialize a git repository?',
-        default: true
-      }];
 
-    switch (this.type) {
-      case 'expressJS':
-      // fall through
-      case 'expressTS':
-        this.prompt(prompts, function (props) {
-          this.templatedata.namespace = props.applicationName;
-          this.templatedata.applicationname = props.applicationName;
-          this.applicationName = props.applicationName;
-          this.gitInit = props.gitInit;
-          done();
-        }.bind(this));
-        break;
+    if (this.sampleType === 'express') {
 
-      // case 'aspnet':
-      //   // generator-aspnet is installed alongside generator-code
-      //   this.composeWith('aspnet', {}, {
-      //     local: require.resolve('generator-aspnet')
-      //   });
 
-      //   done();
-        
-      //   break;
+      var prompts = [
+        {
+          name: 'applicationName',
+          message: 'What\'s the name of your application?',
+          default: app
+        },
+        {
+          name: 'languageType',
+          message: 'What language do you prefer (we like TypeScript!)?',
+          type: 'list',
+          default: 'TypeScript',
+          choices: ['TypeScript', 'JavaScript']
+        },
+        {
+          name: 'gitInit',
+          type: 'confirm',
+          message: 'Initialize a git repository?',
+          default: true
+        }];
+
+      this.prompt(prompts, function (props) {
+        this.languageType = props.languageType;
+        switch (this.languageType) {
+          case 'TypeScript':
+            this.type = 'expressTS';
+            break;
+          case 'JavaScript':
+            this.type = 'expressJS';
+            break;
+          default:
+            this.type = 'expressJS';
+            break;
+        }
+        this.templatedata.namespace = props.applicationName;
+        this.templatedata.applicationname = props.applicationName;
+        this.applicationName = props.applicationName;
+        this.gitInit = props.gitInit;
+        done();
+      }.bind(this));
+
+    } else {
+      done();
     }
   },
 
-  writing: function () {
-    this.sourceRoot(path.join(__dirname, './templates/projects'));
+  generate: function () {
+    var done = this.async();
 
-    switch (this.type) {
-      case 'expressJS':
-      // fall through
-      case 'expressTS':
-        this._writingExpress();
-        break;
-      // case 'aspnet':
-      //   //aspnet generator will do its own writing
-      //   break;
-      default:
-        //unknown project type
-        break;
-    }
+    this.sourceRoot(path.join(__dirname, './templates/projects'));
+    this._writingExpress();
+    done();
+
   },
 
   _writingExpress: function () {
@@ -117,13 +131,12 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
 
     //copy files and folders that are common to both JS and TS 
     this.sourceRoot(path.join(__dirname, '../templates/projects/expressCommon'));
-
         
     // now copy app specific files and folders
     switch (this.type) {
       case 'expressJS':
         this.sourceRoot(path.join(__dirname, '../templates/projects/' + this.type));
-        
+
         this.directory(this.sourceRoot() + '/.vscode', this.applicationName + '/.vscode');
         this.template(this.sourceRoot() + '/bin/www', this.applicationName + '/bin/www', context);
         this.directory(this.sourceRoot() + '/public', this.applicationName + '/public');
@@ -140,10 +153,11 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
         this.template(this.sourceRoot() + '/README.md', this.applicationName + '/README.md', context);
         this.copy(this.sourceRoot() + '/tsd.json', this.applicationName + '/tsd.json');
         this.copy(this.sourceRoot() + '/vscodequickstart.md', this.applicationName + '/vscodequickstart.md');
-        
+
         break;
 
       case 'expressTS':
+
         this.sourceRoot(path.join(__dirname, '../templates/projects/' + this.type));
 
         this.directory(this.sourceRoot() + '/.vscode', this.applicationName + '/.vscode');
@@ -159,8 +173,6 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
         this.copy(this.sourceRoot() + '/tsd.json', this.applicationName + '/tsd.json');
         this.copy(this.sourceRoot() + '/vscodequickstart.md', this.applicationName + '/vscodequickstart.md');
 
-
-
         break;
 
       default:
@@ -174,35 +186,39 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
   },
 
   install: function () {
+    var done = this.async();
 
-      switch (this.type) {
+    switch (this.type) {
 
-        case 'expressJS':
-        // fall through
+      case 'expressJS':
+      // fall through
       
-        case 'expressTS':
+      case 'expressTS':
 
-          if (this.noNpmInstall) {
-            break;
-          }
-
-          process.chdir(this.applicationName);
-
-          this.installDependencies({
-            bower: false,
-            npm: true
-          });
-
+        if (this.noNpmInstall) {
           break;
+        }
 
-        // case 'aspnet':
-        //   // aspnet wil do its own installation
-        //   break;
+        process.chdir(this.applicationName);
 
-        default:
-          break;
-      }
+        this.installDependencies({
+          bower: false,
+          npm: true
+        });
+
+        if (this.gitInit) {
+          this.spawnCommand('git', ['init', '--quiet']);
+        }
+
+        done();
+
+        break;
+
+      default:
+        break;
+    }
   },
+
 
   end: function () {
 
@@ -212,11 +228,6 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
       // fall through
       case 'expressTS':
         this.log('\r\n');
-
-        if (this.gitInit) {
-          this.spawnCommand('git', ['init', '--quiet']);
-        }
-
         this.log('Your project ' + chalk.bold(this.applicationName) + ' has been created! Next steps:');
         this.log('');
         this.log('We recommended installing the TypeScript Definition File Manager (http://definitelytyped.org/tsd/) globally using the following command. This will let you easily download additional definition files to any folder.');
@@ -233,9 +244,6 @@ var VSCodeGenerator = yeoman.generators.Base.extend({
 
         break;
 
-      // case 'aspnet':
-      //   // aspnet wil handle its end
-      //   break;
 
       default:
         break;
